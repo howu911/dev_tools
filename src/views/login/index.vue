@@ -10,13 +10,21 @@ import { useUserStoreHook } from "@/store/modules/user";
 import { initRouter, getTopMenu } from "@/router/utils";
 import { bg, avatar, illustration } from "./utils/static";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import { ref, reactive, toRaw, onMounted, onBeforeUnmount } from "vue";
+import {
+  ref,
+  reactive,
+  toRaw,
+  onMounted,
+  onBeforeUnmount,
+  computed
+} from "vue";
 import { useDataThemeChange } from "@/layout/hooks/useDataThemeChange";
 
 import dayIcon from "@/assets/svg/day.svg?component";
 import darkIcon from "@/assets/svg/dark.svg?component";
 import Lock from "@iconify-icons/ri/lock-fill";
 import User from "@iconify-icons/ri/user-3-fill";
+import LoginRegist from "@/views/login/components/LoginRegist.vue";
 
 defineOptions({
   name: "Login"
@@ -24,6 +32,9 @@ defineOptions({
 const router = useRouter();
 const loading = ref(false);
 const ruleFormRef = ref<FormInstance>();
+const currentPage = computed(() => {
+  return useUserStoreHook().currentPage;
+});
 
 const { initStorage } = useLayout();
 initStorage();
@@ -59,6 +70,12 @@ const onLogin = async (formEl: FormInstance | undefined) => {
         .finally(() => (loading.value = false));
     }
   });
+};
+
+// 新增的注册方法
+const onRegister = () => {
+  useUserStoreHook().SET_CURRENTPAGE(3);
+  console.log("currentPage after setting:", useUserStoreHook().currentPage);
 };
 
 /** 使用公共函数，避免`removeEventListener`失效 */
@@ -102,6 +119,7 @@ onBeforeUnmount(() => {
           </Motion>
 
           <el-form
+            v-if="currentPage === 0"
             ref="ruleFormRef"
             :model="ruleForm"
             :rules="loginRules"
@@ -150,7 +168,21 @@ onBeforeUnmount(() => {
                 登录
               </el-button>
             </Motion>
+
+            <!-- 注册按钮 -->
+            <Motion :delay="300">
+              <el-button
+                class="w-full mt-2"
+                size="default"
+                type="default"
+                @click="onRegister"
+              >
+                注册
+              </el-button>
+            </Motion>
           </el-form>
+          <!-- 注册 -->
+          <LoginRegist v-if="currentPage === 3" />
         </div>
       </div>
     </div>
