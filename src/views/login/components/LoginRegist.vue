@@ -5,7 +5,6 @@ import Motion from "../utils/motion";
 import { message } from "@/utils/message";
 import { updateRules } from "../utils/rule";
 import type { FormInstance } from "element-plus";
-import { $t, transformI18n } from "@/plugins/i18n";
 import { useUserStoreHook } from "@/store/modules/user";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import Lock from "@iconify-icons/ri/lock-fill";
