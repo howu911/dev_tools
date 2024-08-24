@@ -7,10 +7,17 @@ export default {
     {
       path: "/devTools/iterationCalendar",
       name: "IterationCalendar",
-      component: () => import("@/views/iterationCalender/index.vue"),
+      component: () => import("@/views/dev_tools/iterationCalender/index.vue"),
       meta: {
-        title: "迭代日历",
-        showParent: true
+        title: "迭代日历"
+      }
+    },
+    {
+      path: "/devTools/HpaKpi",
+      name: "HpaKpi",
+      component: () => import("@/views/dev_tools/hpaKpi/index.vue"),
+      meta: {
+        title: "HPA Kpi"
       }
     }
   ]
