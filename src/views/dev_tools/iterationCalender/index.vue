@@ -6,22 +6,25 @@ defineOptions({
   name: "IterationCalendar"
 });
 
-const currentDate = new Date();
-const startDate = new Date(currentDate);
-startDate.setFullYear(currentDate.getFullYear() - 1);
-startDate.setDate(startDate.getDate() - startDate.getDay() + 5); // Adjust to the nearest Friday
+const currentDate = new Date(2024, 6, 5);
+const startDate = new Date(2024, 6, 5);
 
-const endDate = new Date(currentDate);
-endDate.setFullYear(currentDate.getFullYear() + 1);
+const endDate = new Date();
+endDate.setDate(endDate.getDate() + 70);
 
-const baseIterationNumber = 198;
-const baseDate = new Date(2024, 7, 2); // August 2, 2024 (Friday)
+const baseIterationNumber = 187;
+const baseDate = new Date(2024, 6, 5);
 
 const getIterationLabel = (date: Date) => {
-  const weeksDiff = Math.floor(
+  let weeksDiff = Math.floor(
     (date.getTime() - baseDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
   );
+  console.log(date);
   const iteration = Math.floor(weeksDiff / 2) + baseIterationNumber;
+  console.log(weeksDiff);
+  if (weeksDiff < 0) {
+    weeksDiff = -weeksDiff;
+  }
   const subIteration = (weeksDiff % 2) + 1;
   return `B${iteration}-${subIteration}`;
 };
