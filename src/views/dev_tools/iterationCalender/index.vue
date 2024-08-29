@@ -10,7 +10,7 @@ const currentDate = new Date(2024, 6, 5);
 const startDate = new Date(2024, 6, 5);
 
 const endDate = new Date();
-endDate.setDate(endDate.getDate() + 70);
+endDate.setDate(endDate.getDate() + 365);
 
 const baseIterationNumber = 187;
 const baseDate = new Date(2024, 6, 5);
@@ -19,9 +19,9 @@ const getIterationLabel = (date: Date) => {
   let weeksDiff = Math.floor(
     (date.getTime() - baseDate.getTime()) / (7 * 24 * 60 * 60 * 1000)
   );
-  console.log(date);
+  // console.log(date);
   const iteration = Math.floor(weeksDiff / 2) + baseIterationNumber;
-  console.log(weeksDiff);
+  // console.log(weeksDiff);
   if (weeksDiff < 0) {
     weeksDiff = -weeksDiff;
   }
