@@ -19,6 +19,14 @@ export default {
       meta: {
         title: "HPA Kpi"
       }
+    },
+    {
+      path: "/devTools/timeCalculator",
+      name: "TimeCalculator",
+      component: () => import("@/views/dev_tools/timeCalculator/index.vue"),
+      meta: {
+        title: "时间计算器"
+      }
     }
   ]
 };
