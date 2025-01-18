@@ -40,4 +40,5 @@
     "v-ripple"
   ],
   "vscodeCustomCodeColor.highlightValueColor": "#b392f0",
+  "cursor.general.disableHttp2": true,
 }
