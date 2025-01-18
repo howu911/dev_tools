@@ -67,7 +67,23 @@ const initDataTable = () => {
           return statusMap[data] || "-";
         }
       },
-      { data: "remark", title: "备注" }
+      { data: "remark", title: "备注" },
+      {
+        data: null,
+        title: "操作",
+        render: (data: any, type: any) => {
+          if (type === "display") {
+            return `
+              <div class="operation-buttons">
+                <button class="el-button el-button--primary el-button--small view-btn">查看</button>
+                <button class="el-button el-button--success el-button--small download-btn">下载</button>
+                <button class="el-button el-button--danger el-button--small delete-btn">删除</button>
+              </div>
+            `;
+          }
+          return "";
+        }
+      }
     ],
     language: {
       sProcessing: "处理中...",
@@ -193,6 +209,16 @@ onMounted(() => {
   &.warning {
     color: white;
     background-color: #e6a23c;
+  }
+}
+
+.operation-buttons {
+  display: flex;
+  gap: 8px;
+
+  :deep(.el-button--small) {
+    padding: 4px 8px;
+    font-size: 12px;
   }
 }
 </style>
