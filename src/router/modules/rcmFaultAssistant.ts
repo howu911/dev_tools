@@ -23,6 +23,16 @@ export default {
         title: "日志采集记录",
         showParent: true
       }
+    },
+    {
+      path: "/rcmFaultAssistant/logView/:ip/:collectionTime",
+      name: "LogView",
+      component: () => import("@/views/rcmFaultAssistant/logView/index.vue"),
+      meta: {
+        title: "日志查看",
+        showParent: true,
+        showLink: false
+      }
     }
   ]
 };

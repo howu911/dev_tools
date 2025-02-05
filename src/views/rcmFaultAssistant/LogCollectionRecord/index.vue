@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { getLogCollectionRecords, LogRecord } from "@/api/rcmFaultAssistantApi";
 import "datatables.net-dt/js/dataTables.dataTables";
@@ -13,6 +14,7 @@ defineOptions({
 
 const tableData = ref<LogRecord[]>([]);
 let dataTable: any = null;
+const router = useRouter();
 
 // 加载数据
 const loadData = async () => {
@@ -71,7 +73,7 @@ const initDataTable = () => {
       {
         data: null,
         title: "操作",
-        render: (data: any, type: any) => {
+        render: (data: any, type: any, row: any) => {
           if (type === "display") {
             return `
               <div class="operation-buttons">
@@ -114,6 +116,20 @@ const initDataTable = () => {
     responsive: true,
     ordering: true,
     searching: true
+  });
+
+  // 添加查看按钮点击事件
+  $("#logTable").on("click", ".view-btn", function () {
+    const rowData = dataTable.row($(this).closest("tr")).data();
+    const row = JSON.parse(JSON.stringify(rowData));
+
+    router.push({
+      name: "LogView",
+      params: {
+        ip: row.ip,
+        collectionTime: row.collectionTime.replace(/[^0-9]/g, "") // 移除非数字字符
+      }
+    });
   });
 };
 

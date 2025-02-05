@@ -7,6 +7,7 @@ export type LogCollectionData = {
 };
 
 export interface LogRecord {
+  id: number;
   ip: string;
   collectionTime: string;
   status: "success" | "failed" | "processing";
