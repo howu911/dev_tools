@@ -1,4 +1,5 @@
 import { http } from "@/utils/http";
+import { rcmBaseUrlApi } from "./utils";
 
 export type LogCollectionData = {
   ip: string;
@@ -31,9 +32,13 @@ export type LogCollectionRecord = {
 
 export const submitLogCollection = (data?: object) => {
   console.log(data);
-  return http.request<LogCollectionResponse>("post", "/rcmlog/collect", {
-    data
-  });
+  return http.request<LogCollectionResponse>(
+    "post",
+    rcmBaseUrlApi("rcmlog/collect"),
+    {
+      data
+    }
+  );
 };
 
 interface PageParams {
@@ -42,7 +47,11 @@ interface PageParams {
 }
 
 export function getLogCollectionRecords(params: PageParams) {
-  return http.request<LogCollectionRecord>("get", "/rcmlog/collectRecord", {
-    params
-  });
+  return http.request<LogCollectionRecord>(
+    "get",
+    rcmBaseUrlApi("rcmlog/collectRecord"),
+    {
+      params
+    }
+  );
 }
