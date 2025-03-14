@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { ElMessage } from "element-plus";
-import { getLogCollectionRecords, LogRecord } from "@/api/rcmFaultAssistantApi";
+import { ElMessage, ElMessageBox } from "element-plus";
+import {
+  getLogCollectionRecords,
+  LogRecord,
+  deleteLogCollectionRecord
+} from "@/api/rcmFaultAssistantApi";
 import "datatables.net-dt/js/dataTables.dataTables";
 import "datatables.net-dt/css/dataTables.dataTables.css";
 import $ from "jquery";
@@ -38,6 +42,10 @@ const loadData = async () => {
 
 // 初始化DataTable
 const initDataTable = () => {
+  // 在重新初始化表格前，先解绑所有已有的事件监听器
+  $("#logTable").off("click", ".view-btn");
+  $("#logTable").off("click", ".delete-btn");
+
   if (dataTable) {
     dataTable.destroy();
   }
@@ -64,7 +72,8 @@ const initDataTable = () => {
           const statusMap = {
             success: '<span class="tiny-tag success">采集成功</span>',
             failed: '<span class="tiny-tag danger">采集失败</span>',
-            processing: '<span class="tiny-tag warning">采集中</span>'
+            processing: '<span class="tiny-tag warning">采集中</span>',
+            notStart: '<span class="tiny-tag info">未开始</span>'
           };
           return statusMap[data] || "-";
         }
@@ -78,7 +87,6 @@ const initDataTable = () => {
             return `
               <div class="operation-buttons">
                 <button class="el-button el-button--primary el-button--small view-btn">查看</button>
-                <button class="el-button el-button--success el-button--small download-btn">下载</button>
                 <button class="el-button el-button--danger el-button--small delete-btn">删除</button>
               </div>
             `;
@@ -131,6 +139,44 @@ const initDataTable = () => {
       }
     });
   });
+
+  // 添加删除按钮点击事件
+  $("#logTable").on("click", ".delete-btn", function () {
+    const rowData = dataTable.row($(this).closest("tr")).data();
+    const row = JSON.parse(JSON.stringify(rowData));
+
+    ElMessageBox.confirm("确定删除该日志采集记录吗？", "提示", {
+      confirmButtonText: "确定",
+      cancelButtonText: "取消",
+      type: "warning"
+    })
+      .then(() => {
+        deleteRecord(row);
+      })
+      .catch(() => {
+        // 取消删除操作
+      });
+  });
+};
+
+// 删除日志采集记录
+const deleteRecord = async (row: LogRecord) => {
+  try {
+    const response = await deleteLogCollectionRecord({
+      ip: row.ip,
+      collectionTime: row.collectionTime
+    });
+
+    if (response.code === 200) {
+      ElMessage.success("删除成功");
+      loadData(); // 重新加载数据
+    } else {
+      ElMessage.error(response.message || "删除失败");
+    }
+  } catch (error) {
+    console.error("删除日志采集记录失败:", error);
+    ElMessage.error("系统错误，请稍后重试");
+  }
 };
 
 onMounted(() => {

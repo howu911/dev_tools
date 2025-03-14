@@ -21,6 +21,11 @@ export type LogCollectionResponse = {
   message: string;
 };
 
+export type DeleteLogCollectionResponse = {
+  code: number;
+  message: string;
+};
+
 export type LogCollectionRecord = {
   code: number;
   message: string;
@@ -36,7 +41,8 @@ export const submitLogCollection = (data?: object) => {
     "post",
     rcmBaseUrlApi("rcmlog/collect"),
     {
-      data
+      data,
+      timeout: 20000
     }
   );
 };
@@ -55,3 +61,18 @@ export function getLogCollectionRecords(params: PageParams) {
     }
   );
 }
+
+export interface DeleteLogParams {
+  ip: string;
+  collectionTime: string;
+}
+
+export const deleteLogCollectionRecord = (params: DeleteLogParams) => {
+  return http.request<DeleteLogCollectionResponse>(
+    "delete",
+    rcmBaseUrlApi("rcmlog/collectRecord"),
+    {
+      params
+    }
+  );
+};
