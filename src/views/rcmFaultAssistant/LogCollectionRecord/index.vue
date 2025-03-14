@@ -130,14 +130,15 @@ const initDataTable = () => {
   $("#logTable").on("click", ".view-btn", function () {
     const rowData = dataTable.row($(this).closest("tr")).data();
     const row = JSON.parse(JSON.stringify(rowData));
+    ElMessageBox.alert("该功能暂未实现");
 
-    router.push({
-      name: "LogView",
-      params: {
-        ip: row.ip,
-        collectionTime: row.collectionTime.replace(/[^0-9]/g, "") // 移除非数字字符
-      }
-    });
+    // router.push({
+    //   name: "LogView",
+    //   params: {
+    //     ip: row.ip,
+    //     collectionTime: row.collectionTime.replace(/[^0-9]/g, "") // 移除非数字字符
+    //   }
+    // });
   });
 
   // 添加删除按钮点击事件
