@@ -42,7 +42,7 @@ export const submitLogCollection = (data?: object) => {
     rcmBaseUrlApi("rcmlog/collect"),
     {
       data,
-      timeout: 20000
+      timeout: 50000
     }
   );
 };
