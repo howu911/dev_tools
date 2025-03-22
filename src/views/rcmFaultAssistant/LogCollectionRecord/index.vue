@@ -166,11 +166,23 @@ const initDataTable = () => {
     const rowData = dataTable.row($(this).closest("tr")).data();
     const row = JSON.parse(JSON.stringify(rowData));
 
+    // 检查采集状态是否为成功
+    if (row.status !== "success") {
+      ElMessage.error("只能对采集成功的记录进行故障解析");
+      return;
+    }
+
     router.push({
       name: "FaultAnalysis",
       params: {
         ip: row.ip,
         collectionTime: row.collectionTime // 保持原始格式，不移除非数字字符
+      },
+      query: {
+        status: row.status, // 传递采集状态信息
+        logType: Array.isArray(row.logType)
+          ? row.logType.join(",")
+          : row.logType // 传递日志类型信息
       }
     });
   });
