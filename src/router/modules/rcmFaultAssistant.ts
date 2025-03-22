@@ -33,6 +33,17 @@ export default {
         showParent: true,
         showLink: false
       }
+    },
+    {
+      path: "/rcmFaultAssistant/faultAnalysis/:ip/:collectionTime",
+      name: "FaultAnalysis",
+      component: () =>
+        import("@/views/rcmFaultAssistant/faultAnalysis/index.vue"),
+      meta: {
+        title: "故障解析",
+        showParent: true,
+        showLink: false
+      }
     }
   ]
 };

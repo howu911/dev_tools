@@ -45,6 +45,7 @@ const initDataTable = () => {
   // 在重新初始化表格前，先解绑所有已有的事件监听器
   $("#logTable").off("click", ".view-btn");
   $("#logTable").off("click", ".delete-btn");
+  $("#logTable").off("click", ".analyze-btn");
 
   if (dataTable) {
     dataTable.destroy();
@@ -87,6 +88,7 @@ const initDataTable = () => {
             return `
               <div class="operation-buttons">
                 <button class="el-button el-button--primary el-button--small view-btn">查看</button>
+                <button class="el-button el-button--success el-button--small analyze-btn">故障解析</button>
                 <button class="el-button el-button--danger el-button--small delete-btn">删除</button>
               </div>
             `;
@@ -157,6 +159,20 @@ const initDataTable = () => {
       .catch(() => {
         // 取消删除操作
       });
+  });
+
+  // 添加故障解析按钮点击事件
+  $("#logTable").on("click", ".analyze-btn", function () {
+    const rowData = dataTable.row($(this).closest("tr")).data();
+    const row = JSON.parse(JSON.stringify(rowData));
+
+    router.push({
+      name: "FaultAnalysis",
+      params: {
+        ip: row.ip,
+        collectionTime: row.collectionTime // 保持原始格式，不移除非数字字符
+      }
+    });
   });
 };
 
