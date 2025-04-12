@@ -47,6 +47,25 @@ const getStatusInfo = (status: string) => {
   return statusMap[status] || { text: status, class: "" };
 };
 
+// 添加格式化函数
+const formatAnalysisResult = (result: string) => {
+  // 替换关键词为高亮
+  return result
+    .replace(
+      /开始分析故障/g,
+      '<span class="highlight-info">开始分析故障</span>'
+    )
+    .replace(/正在执行:/g, '<span class="highlight-process">正在执行:</span>')
+    .replace(
+      /----- 分析结果 -----/g,
+      '<div class="result-separator"><span>分析结果</span></div>'
+    )
+    .replace(/(\d+\. .*容器.*)/g, '<span class="highlight-container">$1</span>')
+    .replace(/(运行时间为.*)/g, '<span class="highlight-time">$1</span>')
+    .replace(/(原始日志：.*)/g, '<div class="original-log">$1</div>')
+    .replace(/\n/g, "<br>");
+};
+
 // 修改开始解析函数
 const startAnalysis = async () => {
   // 表单验证 - 验证故障类型和容器名称必填
@@ -112,8 +131,9 @@ const startAnalysis = async () => {
                 // 尝试解析最终结果
                 const finalResult = JSON.parse(data);
                 if (finalResult.text) {
-                  // 这是最终结果，替换掉之前的所有内容
-                  analysisResult.value = finalResult.text;
+                  // 添加一个分隔线，然后追加最终结果（不再替换之前的内容）
+                  analysisResult.value +=
+                    "\n\n----- 分析结果 -----\n\n" + finalResult.text;
                   await nextTick();
                   const resultContent =
                     document.querySelector(".result-content");
@@ -143,8 +163,9 @@ const startAnalysis = async () => {
               ) {
                 // 处理LLM节点的输出
                 if (jsonData.data.outputs.text) {
-                  // 这是最终的分析结果，清空之前的中间过程信息
-                  analysisResult.value = jsonData.data.outputs.text;
+                  // 添加一个分隔线，然后追加最终结果（不再替换之前的内容）
+                  analysisResult.value +=
+                    "\n\n----- 分析结果 -----\n\n" + jsonData.data.outputs.text;
                   break;
                 }
               } else if (
@@ -174,11 +195,13 @@ const startAnalysis = async () => {
             ) {
               // 工作流成功完成，但可能没有LLM节点的输出
               if (jsonData.data.outputs && jsonData.data.outputs.text) {
-                analysisResult.value = jsonData.data.outputs.text;
+                // 添加分隔线并追加
+                analysisResult.value +=
+                  "\n\n----- 分析结果 -----\n\n" + jsonData.data.outputs.text;
               }
             }
 
-            // 只有有内容时才添加（除非是LLM结果，那是直接替换）
+            // 只有有内容时才添加
             if (contentToDisplay) {
               analysisResult.value += contentToDisplay;
               // 等待DOM更新以实现滚动到底部
@@ -363,7 +386,10 @@ onMounted(() => {
           </el-empty>
         </div>
         <div v-else-if="analyzing" class="result-content">
-          <div class="analysis-text-content">{{ analysisResult }}</div>
+          <div
+            class="analysis-text-content"
+            v-html="formatAnalysisResult(analysisResult)"
+          />
           <div class="analysis-loading">
             <el-progress type="circle" :percentage="0" :indeterminate="true" />
             <p>正在解析中，请稍候...</p>
@@ -372,7 +398,7 @@ onMounted(() => {
         <div v-else class="result-content">
           <div
             class="analysis-text-content"
-            v-html="analysisResult.replace(/\n/g, '<br>')"
+            v-html="formatAnalysisResult(analysisResult)"
           />
         </div>
       </div>
@@ -590,11 +616,66 @@ onMounted(() => {
   height: 100%;
   padding: 10px;
   overflow-y: auto;
-  font-family: monospace;
+  font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
   font-size: 14px;
   line-height: 1.6;
   color: #333;
   white-space: pre-wrap;
+
+  :deep(.highlight-info) {
+    font-weight: bold;
+    color: #409eff;
+  }
+
+  :deep(.highlight-process) {
+    font-weight: bold;
+    color: #e6a23c;
+  }
+
+  :deep(.highlight-container) {
+    font-weight: bold;
+    color: #67c23a;
+  }
+
+  :deep(.highlight-time) {
+    color: #409eff;
+  }
+
+  :deep(.original-log) {
+    padding: 8px;
+    margin: 5px 0;
+    overflow-x: auto;
+    font-family: monospace;
+    font-size: 13px;
+    color: #606266;
+    background-color: #f8f8f8;
+    border-left: 3px solid #67c23a;
+  }
+
+  :deep(.result-separator) {
+    position: relative;
+    margin: 20px 0;
+    text-align: center;
+
+    &::before {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      content: "";
+      background-color: #dcdfe6;
+    }
+
+    span {
+      position: relative;
+      padding: 0 15px;
+      font-size: 16px;
+      font-weight: bold;
+      color: #409eff;
+      background-color: white;
+    }
+  }
 }
 
 .analysis-loading {
