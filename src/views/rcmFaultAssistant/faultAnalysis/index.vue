@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import { ElMessage } from "element-plus";
 import { Document, Stopwatch, Box, Cpu } from "@element-plus/icons-vue";
+import { startFaultAnalysis } from "@/api/rcmFaultAssistantApi";
 
 defineOptions({
   name: "FaultAnalysis"
@@ -31,6 +32,10 @@ const form = ref({
 // 加载状态
 const analyzing = ref(false);
 
+// 添加分析结果状态
+const analysisResult = ref("");
+const showResult = ref(false);
+
 // 获取状态显示文本和样式
 const getStatusInfo = (status: string) => {
   const statusMap = {
@@ -42,34 +47,88 @@ const getStatusInfo = (status: string) => {
   return statusMap[status] || { text: status, class: "" };
 };
 
-// 开始解析函数
-const startAnalysis = () => {
-  // 表单验证 - 只验证故障类型必填
+// 修改开始解析函数
+const startAnalysis = async () => {
+  // 表单验证 - 验证故障类型和容器名称必填
   if (!form.value.faultType) {
     ElMessage.warning("请选择故障类型");
     return;
   }
 
+  if (!form.value.containerNames) {
+    ElMessage.warning("请输入容器名称");
+    return;
+  }
+
   // 设置加载状态
   analyzing.value = true;
+  analysisResult.value = "";
+  showResult.value = true;
 
-  // 模拟解析过程
-  setTimeout(() => {
+  try {
+    // 准备请求数据
+    const inputs = {
+      RAG: "容器启动",
+      event_start_time: form.value.startTime || "",
+      event_end_time: form.value.endTime || "",
+      container_name: form.value.containerNames,
+      env_ip: ip.value,
+      collect_time: collectionTime.value,
+      collect_status: status.value
+    };
+
+    console.log("开始解析故障:", inputs);
+
+    // 发送请求获取流式响应
+    const response = await startFaultAnalysis(inputs);
+
+    // 处理流式响应
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error("无法获取响应流");
+    }
+
+    const decoder = new TextDecoder();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      // 解码接收到的数据
+      const chunk = decoder.decode(value, { stream: true });
+
+      // 处理SSE数据，格式为: data: {...}
+      const lines = chunk.split("\n");
+      for (const line of lines) {
+        if (line.startsWith("data:") && line.length > 5) {
+          try {
+            const data = line.substring(5);
+            // 追加到分析结果中
+            analysisResult.value += data;
+            // 等待DOM更新以实现滚动到底部
+            await nextTick();
+            // 滚动结果区域到底部
+            const resultContent = document.querySelector(".result-content");
+            if (resultContent) {
+              resultContent.scrollTop = resultContent.scrollHeight;
+            }
+          } catch (e) {
+            console.error("解析SSE数据失败", e);
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error("故障解析请求失败:", error);
+    // 输出更详细的错误信息以便调试
+    if (error instanceof Error) {
+      console.error("错误详情:", error.message);
+    } else {
+      console.error("未知错误类型:", error);
+    }
+    ElMessage.error("故障解析请求失败，请稍后重试");
+  } finally {
     analyzing.value = false;
-    ElMessage.success("故障解析完成");
-    // 这里可以添加解析结果的展示逻辑
-  }, 2000);
-
-  console.log("开始解析故障:", {
-    ip: ip.value,
-    collectionTime: collectionTime.value,
-    status: status.value,
-    logType: logType.value,
-    faultType: form.value.faultType,
-    startTime: form.value.startTime,
-    endTime: form.value.endTime,
-    containerNames: form.value.containerNames
-  });
+  }
 };
 
 onMounted(() => {
@@ -179,10 +238,10 @@ onMounted(() => {
               />
             </el-form-item>
 
-            <el-form-item label="容器名称">
+            <el-form-item label="容器名称" required>
               <el-input
                 v-model="form.containerNames"
-                placeholder="输入容器名称，如：apmac;nf-oam（可选）"
+                placeholder="输入容器名称，如：apmac,nf-oam"
                 class="form-input"
                 :prefix-icon="Box"
               />
@@ -204,15 +263,25 @@ onMounted(() => {
 
       <!-- 分析结果区域 -->
       <div class="result-panel">
-        <div v-if="!analyzing" class="result-content empty-content">
+        <div v-if="!showResult" class="result-content empty-content">
           <el-empty description="暂无故障解析数据">
             <template #description>
               <p>请配置故障分析参数并点击"开始解析"</p>
             </template>
           </el-empty>
         </div>
+        <div v-else-if="analyzing" class="result-content">
+          <div class="analysis-text-content">{{ analysisResult }}</div>
+          <div class="analysis-loading">
+            <el-progress type="circle" :percentage="0" :indeterminate="true" />
+            <p>正在解析中，请稍候...</p>
+          </div>
+        </div>
         <div v-else class="result-content">
-          <el-skeleton style="width: 100%" :rows="10" animated />
+          <div
+            class="analysis-text-content"
+            v-html="analysisResult.replace(/\n/g, '<br>')"
+          />
         </div>
       </div>
     </el-card>
@@ -422,5 +491,32 @@ onMounted(() => {
   object-fit: cover;
   border-radius: 8px;
   box-shadow: 0 2px 12px 0 rgb(0 0 0 / 10%);
+}
+
+.analysis-text-content {
+  width: 100%;
+  height: 100%;
+  padding: 10px;
+  overflow-y: auto;
+  font-family: monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #333;
+  white-space: pre-wrap;
+}
+
+.analysis-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  margin-top: 20px;
+
+  p {
+    margin-top: 16px;
+    font-size: 14px;
+    color: #909399;
+  }
 }
 </style>
