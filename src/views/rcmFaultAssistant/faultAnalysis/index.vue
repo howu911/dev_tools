@@ -89,12 +89,15 @@ const startAnalysis = async () => {
     }
 
     const decoder = new TextDecoder();
+    let fullResponse = "";
+
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
       // 解码接收到的数据
       const chunk = decoder.decode(value, { stream: true });
+      fullResponse += chunk;
 
       // 处理SSE数据，格式为: data: {...}
       const lines = chunk.split("\n");
@@ -102,19 +105,108 @@ const startAnalysis = async () => {
         if (line.startsWith("data:") && line.length > 5) {
           try {
             const data = line.substring(5);
-            // 追加到分析结果中
-            analysisResult.value += data;
-            // 等待DOM更新以实现滚动到底部
-            await nextTick();
-            // 滚动结果区域到底部
-            const resultContent = document.querySelector(".result-content");
-            if (resultContent) {
-              resultContent.scrollTop = resultContent.scrollHeight;
+
+            // 检查是否包含完整的结果JSON
+            if (data.includes('"text":') && data.includes('"finish_reason":')) {
+              try {
+                // 尝试解析最终结果
+                const finalResult = JSON.parse(data);
+                if (finalResult.text) {
+                  // 这是最终结果，替换掉之前的所有内容
+                  analysisResult.value = finalResult.text;
+                  await nextTick();
+                  const resultContent =
+                    document.querySelector(".result-content");
+                  if (resultContent) {
+                    resultContent.scrollTop = resultContent.scrollHeight;
+                  }
+                  continue;
+                }
+              } catch (parseError) {
+                console.error("解析最终结果失败:", parseError);
+              }
+            }
+
+            // 其他常规处理流程（显示中间步骤）
+            const jsonData = JSON.parse(data);
+
+            // 获取有用的内容
+            let contentToDisplay = "";
+
+            // 检查事件类型和内容
+            if (jsonData.event === "node_finished") {
+              // 处理节点完成事件
+              if (
+                jsonData.data &&
+                jsonData.data.node_type === "llm" &&
+                jsonData.data.outputs
+              ) {
+                // 处理LLM节点的输出
+                if (jsonData.data.outputs.text) {
+                  // 这是最终的分析结果，清空之前的中间过程信息
+                  analysisResult.value = jsonData.data.outputs.text;
+                  break;
+                }
+              } else if (
+                jsonData.data &&
+                jsonData.data.node_type === "knowledge-retrieval" &&
+                jsonData.data.outputs &&
+                jsonData.data.outputs.result
+              ) {
+                // 保留知识检索节点的处理
+                const results = jsonData.data.outputs.result;
+                if (Array.isArray(results)) {
+                  results.forEach((item, index) => {
+                    if (item.content) {
+                      contentToDisplay += `${index + 1}. ${item.content}\n`;
+                    }
+                  });
+                }
+              }
+            } else if (jsonData.event === "workflow_started") {
+              contentToDisplay = "开始分析故障...\n";
+            } else if (jsonData.event === "node_started") {
+              contentToDisplay = `正在执行: ${jsonData.data.title || "处理中"}\n`;
+            } else if (
+              jsonData.event === "workflow_finished" &&
+              jsonData.data &&
+              jsonData.data.status === "succeeded"
+            ) {
+              // 工作流成功完成，但可能没有LLM节点的输出
+              if (jsonData.data.outputs && jsonData.data.outputs.text) {
+                analysisResult.value = jsonData.data.outputs.text;
+              }
+            }
+
+            // 只有有内容时才添加（除非是LLM结果，那是直接替换）
+            if (contentToDisplay) {
+              analysisResult.value += contentToDisplay;
+              // 等待DOM更新以实现滚动到底部
+              await nextTick();
+              // 滚动结果区域到底部
+              const resultContent = document.querySelector(".result-content");
+              if (resultContent) {
+                resultContent.scrollTop = resultContent.scrollHeight;
+              }
             }
           } catch (e) {
             console.error("解析SSE数据失败", e);
           }
         }
+      }
+    }
+
+    // 如果循环结束后仍未找到结果，尝试从完整响应中提取
+    if (!analysisResult.value.includes("容器的运行时间点")) {
+      try {
+        // 尝试从完整响应中提取结果
+        const resultMatch = fullResponse.match(/"text":\s*"([^"]+)"/);
+        if (resultMatch && resultMatch[1]) {
+          // 处理转义字符
+          analysisResult.value = JSON.parse(`"${resultMatch[1]}"`);
+        }
+      } catch (e) {
+        console.error("从完整响应提取结果失败:", e);
       }
     }
   } catch (error) {
